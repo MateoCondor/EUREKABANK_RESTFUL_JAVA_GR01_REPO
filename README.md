@@ -16,7 +16,7 @@
 5.  POST /accounts                 → crear cuenta bancaria para el cliente
 6.  POST /transactions/deposit     → depositar saldo inicial
 7.  POST /transactions/withdraw    → retirar
-8.  POST /transactions/transfer    → transferir entre cuentas
+8.  POST /transactions/transfer    → transferir entre cuentas (soporta CREDIT/DEBIT)
 9.  GET  /transactions/account/{id}→ ver historial de movimientos
 ```
 
@@ -63,10 +63,9 @@ Módulo de configuración del sistema. Los parámetros son **opcionales**: si no
 **Response `200 OK`:**
 ```json
 [
-  { "id": 1, "key": "transfer.fee.percentage", "value": "0.50", "description": "Comisión de transferencia (%)" },
-  { "id": 2, "key": "transfer.daily.limit",    "value": "5000.00", "description": "Límite diario de transferencias (USD)" },
-  { "id": 3, "key": "withdraw.daily.limit",    "value": "2000.00", "description": "Límite diario de retiros (USD)" },
-  { "id": 4, "key": "account.min.balance",     "value": "10.00",  "description": "Saldo mínimo requerido (USD)" }
+  { "id": 1, "key": "transfer.fee.percentage", "value": "0.50", "description": "Comisión genérica de transferencia (%)" },
+  { "id": 2, "key": "transfer.credit.fee.percentage", "value": "0.25", "description": "Comisión para transferencias CREDIT (%)" },
+  { "id": 3, "key": "transfer.debit.fee.percentage", "value": "1.00", "description": "Comisión para transferencias DEBIT (%)" }
 ]
 ```
 
@@ -78,12 +77,7 @@ GET /parameters/transfer.fee.percentage
 ```
 **Response `200 OK`:**
 ```json
-{ "id": 1, "key": "transfer.fee.percentage", "value": "0.50", "description": "Comisión de transferencia (%)" }
-```
-
-**Response `404 Not Found`:**
-```json
-{ "message": "Parameter not found: transfer.fee.percentage" }
+{ "id": 1, "key": "transfer.fee.percentage", "value": "0.50", "description": "Comisión genérica de transferencia (%)" }
 ```
 
 ---
@@ -94,20 +88,12 @@ GET /parameters/transfer.fee.percentage
 {
   "key": "transfer.fee.percentage",
   "value": "0.50",
-  "description": "Comisión de transferencia (%)"
+  "description": "Comisión genérica de transferencia (%)"
 }
 ```
-
 **Response `201 Created`:**
 ```json
-{ "id": 1, "key": "transfer.fee.percentage", "value": "0.50", "description": "Comisión de transferencia (%)" }
-```
-
-**Errores posibles:**
-```json
-{ "message": "Parameter key is required" }                          // 400
-{ "message": "Parameter value is required" }                        // 400
-{ "message": "Parameter already exists with key: transfer.fee.percentage" } // 409
+{ "id": 1, "key": "transfer.fee.percentage", "value": "0.50", "description": "Comisión genérica de transferencia (%)" }
 ```
 
 ---
@@ -122,21 +108,25 @@ PUT /parameters/1
 ```json
 {
   "value": "1.00",
-  "description": "Nueva comisión de transferencia"
+  "description": "Nueva comisión genérica"
 }
 ```
 **Response `200 OK`:** → objeto actualizado
 
 ---
 
-### Parámetros del sistema disponibles
+### Parámetros del sistema disponibles (incluyendo fallbacks)
 
-| Key | Efecto | Valor por defecto |
-|-----|--------|-------------------|
-| `transfer.fee.percentage` | % de comisión sobre cada transferencia. Ej: `"0.50"` = 0.5% | `"0"` (sin comisión) |
-| `transfer.daily.limit` | Monto máximo transferible por día por cuenta | `"0"` (ilimitado) |
-| `withdraw.daily.limit` | Monto máximo retirable por día por cuenta | `"0"` (ilimitado) |
-| `account.min.balance` | Saldo mínimo que debe quedar tras un retiro | `"0"` (sin mínimo) |
+El sistema utiliza un mecanismo de "fallback" (respaldo) para las transferencias. Si un parámetro específico de tipo (ej. `transfer.credit.fee.percentage`) no existe, buscará el genérico (`transfer.fee.percentage`). Si este tampoco existe, asumirá `0`.
+
+| Key específica (Alta Prioridad) | Fallback (Baja Prioridad) | Efecto |
+|---------------------------------|---------------------------|--------|
+| `transfer.credit.fee.percentage`| `transfer.fee.percentage` | % de comisión cobrada al origen. |
+| `transfer.debit.fee.percentage` | `transfer.fee.percentage` | % de comisión cobrada al origen. |
+| `transfer.credit.daily.limit`   | `transfer.daily.limit`    | Monto máximo transferible por día. |
+| `transfer.debit.daily.limit`    | `transfer.daily.limit`    | Monto máximo transferible por día. |
+| (no aplica)                     | `withdraw.daily.limit`    | Monto máximo retirable por día. |
+| (no aplica)                     | `account.min.balance`     | Saldo mínimo que debe quedar. |
 
 ---
 
@@ -176,9 +166,7 @@ PUT /parameters/1
 **Errores posibles:**
 ```json
 { "message": "Name is required" }                      // 400
-{ "message": "Email is invalid" }                      // 400
 { "message": "Username is required" }                  // 400
-{ "message": "Password is required" }                  // 400
 { "message": "Password must be at least 6 characters"} // 400
 { "message": "DNI already exists" }                    // 409
 { "message": "Username already exists" }               // 409
@@ -187,51 +175,17 @@ PUT /parameters/1
 ---
 
 ### `GET /clients` — Listar todos los clientes
-**Response `200 OK`:**
-```json
-[
-  {
-    "id": 1,
-    "name": "María Gómez",
-    "dni": "0923456789",
-    "email": "maria@gmail.com",
-    "phone": "0981111111",
-    "status": "ACTIVE",
-    "userId": 2,
-    "username": "mgomez"
-  }
-]
-```
-
----
+**Response `200 OK`:** → array de objetos cliente.
 
 ### `GET /clients/{id}` — Obtener cliente por ID
-```
-GET /clients/1
-```
-**Response `200 OK`:** → mismo objeto del `POST`
-
-**Response `404 Not Found`:**
-```json
-{ "message": "Client not found" }
-```
-
----
+**Response `200 OK`:** → objeto del cliente.
 
 ### `GET /clients/dni/{dni}` — Buscar por cédula
-```
-GET /clients/dni/0923456789
-```
-**Response `200 OK`:** → mismo objeto del `POST`
-
----
+**Response `200 OK`:** → objeto del cliente.
 
 ### `PUT /clients/{id}` — Actualizar datos del cliente
 > Solo se actualizan los datos del cliente. El usuario (`username`/`password`) no se modifica aquí.
 
-```
-PUT /clients/1
-```
 **Request:**
 ```json
 {
@@ -243,16 +197,8 @@ PUT /clients/1
 ```
 **Response `200 OK`:** → objeto actualizado
 
----
-
 ### `DELETE /clients/{id}` — Eliminar cliente
-```
-DELETE /clients/1
-```
-**Response `200 OK`:**
-```json
-{ "message": "Client deleted" }
-```
+**Response `200 OK`:** `{ "message": "Client deleted" }`
 
 ---
 
@@ -280,68 +226,23 @@ DELETE /clients/1
 }
 ```
 
----
-
 ### `GET /accounts` — Listar todas las cuentas
-**Response `200 OK`:** → array de cuentas
-
----
-
 ### `GET /accounts/{id}` — Obtener cuenta por ID
-```
-GET /accounts/1
-```
-**Response `200 OK`:** → objeto de cuenta
-
-**Response `404 Not Found`:**
-```json
-{ "message": "Account not found" }
-```
-
----
-
 ### `GET /accounts/client/{clientId}` — Cuentas de un cliente
-```
-GET /accounts/client/1
-```
-**Response `200 OK`:** → array de cuentas del cliente
-
----
 
 ### `GET /accounts/{id}/balance` — Consultar saldo
-```
-GET /accounts/1/balance
-```
-**Response `200 OK`:**
-```json
-{ "balance": 1250.75 }
-```
-
-**Response `400 Bad Request`** (cuenta inactiva):
-```json
-{ "message": "Account is not active" }
-```
-
----
+**Response `200 OK`:** `{ "balance": 1250.75 }`
 
 ### `PUT /accounts/{id}/status` — Cambiar estado
-```
-PUT /accounts/1/status
-```
-**Request:**
-```json
-{ "status": "INACTIVE" }
-```
+**Request:** `{ "status": "INACTIVE" }`
 > `status` puede ser: `ACTIVE` o `INACTIVE`
-
-**Response `200 OK`:** → objeto de cuenta actualizado
 
 ---
 
 ## 5. 💸 Transactions
 
 > [!IMPORTANT]  
-> La cuenta debe estar en estado **`ACTIVE`**. El comportamiento de cada operación puede estar regulado por los **parámetros del sistema** configurados en `/parameters`.
+> La cuenta debe estar en estado **`ACTIVE`**. El comportamiento de cada operación está regulado por los **parámetros del sistema** configurados en `/parameters`.
 
 ### `POST /transactions/deposit` — Depósito
 **Request:**
@@ -358,6 +259,7 @@ PUT /accounts/1/status
 {
   "id": 1,
   "type": "DEPOSIT",
+  "transferType": null,
   "amount": 1000.00,
   "fee": 0.00,
   "date": "2026-05-15T12:00:00",
@@ -365,13 +267,6 @@ PUT /accounts/1/status
   "targetAccountId": null,
   "description": "Depósito inicial en efectivo"
 }
-```
-
-**Errores posibles:**
-```json
-{ "message": "Account not found" }               // 404
-{ "message": "Account is not active" }            // 400
-{ "message": "Amount must be greater than zero" } // 400
 ```
 
 ---
@@ -391,6 +286,7 @@ PUT /accounts/1/status
 {
   "id": 2,
   "type": "WITHDRAW",
+  "transferType": null,
   "amount": 200.00,
   "fee": 0.00,
   "date": "2026-05-15T12:05:00",
@@ -400,25 +296,19 @@ PUT /accounts/1/status
 }
 ```
 
-**Errores posibles:**
-```json
-{ "message": "Insufficient balance" }                                    // 400
-{ "message": "Withdrawal would leave balance below the required minimum of 10.00" } // 400
-{ "message": "Daily withdraw limit exceeded. Limit: 2000.00, already withdrawn today: 1900.00" } // 400
-{ "message": "Account is not active" }                                   // 400
-```
-
 ---
 
 ### `POST /transactions/transfer` — Transferencia
 > La comisión se descuenta de la cuenta origen. El destino recibe exactamente el `amount` indicado.
+> `transferType` es **obligatorio**. `CREDIT` (pagador empuja fondos) o `DEBIT` (beneficiario jala fondos).
 
-**Request:**
+**Request (Ejemplo CREDIT):**
 ```json
 {
   "sourceAccountId": 1,
   "targetAccountId": 2,
   "amount": 500.00,
+  "transferType": "CREDIT",
   "description": "Pago de arriendo"
 }
 ```
@@ -428,6 +318,7 @@ PUT /accounts/1/status
 {
   "id": 3,
   "type": "TRANSFER",
+  "transferType": "CREDIT",
   "amount": 500.00,
   "fee": 2.50,
   "date": "2026-05-15T12:10:00",
@@ -436,16 +327,15 @@ PUT /accounts/1/status
   "description": "Pago de arriendo"
 }
 ```
-> `fee: 2.50` significa que se dedujo `502.50` de la cuenta origen (500 + 0.5% de comisión).
+> `fee: 2.50` significa que se dedujo `502.50` de la cuenta origen (500 + 0.5% de comisión de `transfer.credit.fee.percentage`).
 
 **Errores posibles:**
 ```json
-{ "message": "Source and target account are required" }                              // 400
-{ "message": "Source and target accounts must be different" }                        // 400
-{ "message": "Insufficient balance. Transfer requires 502.50 (amount: 500.00 + fee: 2.50)" } // 400
-{ "message": "Daily transfer limit exceeded. Limit: 5000.00, already transferred today: 4800.00" } // 400
-{ "message": "Account not found" }                                                   // 404
-{ "message": "Account is not active" }                                               // 400
+{ "message": "Source and target account are required" }
+{ "message": "Source and target accounts must be different" }
+{ "message": "Transfer type is required (CREDIT or DEBIT)" }
+{ "message": "Insufficient balance. Transfer requires 502.50 (amount: 500.00 + fee: 2.50)" }
+{ "message": "Daily credit transfer limit exceeded. Limit: 5000.00, already transferred today: 4800.00" }
 ```
 
 ---
@@ -463,6 +353,7 @@ GET /transactions/account/1
   {
     "id": 3,
     "type": "TRANSFER",
+    "transferType": "CREDIT",
     "amount": 500.00,
     "fee": 2.50,
     "date": "2026-05-15T12:10:00",
@@ -471,18 +362,9 @@ GET /transactions/account/1
     "description": "Pago de arriendo"
   },
   {
-    "id": 2,
-    "type": "WITHDRAW",
-    "amount": 200.00,
-    "fee": 0.00,
-    "date": "2026-05-15T12:05:00",
-    "sourceAccountId": 1,
-    "targetAccountId": null,
-    "description": "Retiro cajero automático"
-  },
-  {
     "id": 1,
     "type": "DEPOSIT",
+    "transferType": null,
     "amount": 1000.00,
     "fee": 0.00,
     "date": "2026-05-15T12:00:00",
@@ -502,11 +384,9 @@ GET /transactions/account/1
 POST /auth/login
 { "username": "MONSTER", "password": "MONSTER9" }
 
-# 2. Configurar parámetros del sistema
-POST /parameters  →  { "key": "transfer.fee.percentage", "value": "0.50", "description": "Comisión transferencia %" }
-POST /parameters  →  { "key": "transfer.daily.limit",    "value": "5000.00", "description": "Límite diario transferencias" }
-POST /parameters  →  { "key": "withdraw.daily.limit",    "value": "2000.00", "description": "Límite diario retiros" }
-POST /parameters  →  { "key": "account.min.balance",     "value": "10.00",   "description": "Saldo mínimo requerido" }
+# 2. Configurar parámetros del sistema (Fallback para genérico vs específico)
+POST /parameters  →  { "key": "transfer.fee.percentage", "value": "0.10", "description": "Fallback comisión" }
+POST /parameters  →  { "key": "transfer.debit.fee.percentage", "value": "1.00", "description": "Comisión DEBIT 1%" }
 
 # 3. Crear cliente María (crea automáticamente usuario 'mgomez')
 POST /clients
@@ -528,28 +408,19 @@ POST /accounts  →  { "clientId": 2, "type": "CHECKING" }  → accountId: 2
 POST /transactions/deposit
 { "accountId": 1, "amount": 1000.00, "description": "Sueldo mensual" }
 
-# 7. Verificar saldo
-GET /accounts/1/balance  →  { "balance": 1000.00 }
-
-# 8. Retirar
-POST /transactions/withdraw
-{ "accountId": 1, "amount": 300.00, "description": "Gastos varios" }
-
-# 9. Transferir (con 0.5% de comisión → fee = 1.00)
+# 7. Transferencia CREDIT (Usa fallback transfer.fee.percentage -> 0.1% -> Fee = 0.50)
 POST /transactions/transfer
-{ "sourceAccountId": 1, "targetAccountId": 2, "amount": 200.00, "description": "Pago cuota" }
-# María pierde: 200 + 1.00 (fee) = 201.00
+{ "sourceAccountId": 1, "targetAccountId": 2, "amount": 500.00, "transferType": "CREDIT" }
+# Saldo María = 1000.00 - 500.50 = 499.50
 
-# 10. Verificar saldos finales
-GET /accounts/1/balance  →  { "balance": 499.00 }
-GET /accounts/2/balance  →  { "balance": 200.00 }
+# 8. Transferencia DEBIT (Usa específico transfer.debit.fee.percentage -> 1% -> Fee = 1.00)
+POST /transactions/transfer
+{ "sourceAccountId": 1, "targetAccountId": 2, "amount": 100.00, "transferType": "DEBIT" }
+# Saldo María = 499.50 - 101.00 = 398.50
 
-# 11. Ver historial completo de María
-GET /transactions/account/1
-
-# 12. Login como cliente (para probar acceso con usuario de cliente)
-POST /auth/login
-{ "username": "mgomez", "password": "Segura123" }
+# 9. Verificar saldos finales
+GET /accounts/1/balance  →  { "balance": 398.50 }
+GET /accounts/2/balance  →  { "balance": 600.00 }
 ```
 
 ---
@@ -564,31 +435,3 @@ POST /auth/login
 | `404 Not Found` | Cuenta, cliente, usuario o parámetro no encontrado |
 | `409 Conflict` | DNI, username o clave de parámetro ya existente |
 | `500 Internal Server Error` | Parámetro requerido mal configurado (valor no numérico) |
-
----
-
-## 📋 Resumen de endpoints
-
-| Módulo | Método | Path | Descripción |
-|--------|--------|------|-------------|
-| **Auth** | POST | `/auth/login` | Login de usuario |
-| **Parameters** | GET | `/parameters` | Listar parámetros |
-| | GET | `/parameters/{key}` | Buscar por clave |
-| | POST | `/parameters` | Crear parámetro |
-| | PUT | `/parameters/{id}` | Actualizar valor |
-| **Clients** | GET | `/clients` | Listar clientes |
-| | GET | `/clients/{id}` | Obtener por ID |
-| | GET | `/clients/dni/{dni}` | Buscar por cédula |
-| | POST | `/clients` | Crear cliente + usuario |
-| | PUT | `/clients/{id}` | Actualizar cliente |
-| | DELETE | `/clients/{id}` | Eliminar cliente |
-| **Accounts** | GET | `/accounts` | Listar cuentas |
-| | GET | `/accounts/{id}` | Obtener por ID |
-| | GET | `/accounts/client/{clientId}` | Cuentas de un cliente |
-| | GET | `/accounts/{id}/balance` | Consultar saldo |
-| | POST | `/accounts` | Crear cuenta |
-| | PUT | `/accounts/{id}/status` | Cambiar estado |
-| **Transactions** | POST | `/transactions/deposit` | Depósito |
-| | POST | `/transactions/withdraw` | Retiro |
-| | POST | `/transactions/transfer` | Transferencia con comisión |
-| | GET | `/transactions/account/{accountId}` | Historial de cuenta |

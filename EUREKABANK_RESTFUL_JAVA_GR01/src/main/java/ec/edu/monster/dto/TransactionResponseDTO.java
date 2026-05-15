@@ -1,6 +1,7 @@
 package ec.edu.monster.dto;
 
 import ec.edu.monster.model.TransactionType;
+import ec.edu.monster.model.TransferType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -8,6 +9,7 @@ public class TransactionResponseDTO {
 
     private Long id;
     private TransactionType type;
+    private TransferType transferType;
     private BigDecimal amount;
     private BigDecimal fee;
     private LocalDateTime date;
@@ -18,10 +20,12 @@ public class TransactionResponseDTO {
     public TransactionResponseDTO() {
     }
 
-    public TransactionResponseDTO(Long id, TransactionType type, BigDecimal amount, BigDecimal fee,
-            LocalDateTime date, Long sourceAccountId, Long targetAccountId, String description) {
+    public TransactionResponseDTO(Long id, TransactionType type, TransferType transferType,
+            BigDecimal amount, BigDecimal fee, LocalDateTime date,
+            Long sourceAccountId, Long targetAccountId, String description) {
         this.id = id;
         this.type = type;
+        this.transferType = transferType;
         this.amount = amount;
         this.fee = fee;
         this.date = date;
@@ -44,6 +48,14 @@ public class TransactionResponseDTO {
 
     public void setType(TransactionType type) {
         this.type = type;
+    }
+
+    public TransferType getTransferType() {
+        return transferType;
+    }
+
+    public void setTransferType(TransferType transferType) {
+        this.transferType = transferType;
     }
 
     public BigDecimal getAmount() {

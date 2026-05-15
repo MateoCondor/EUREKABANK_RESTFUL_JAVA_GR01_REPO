@@ -43,6 +43,10 @@ public class Transaction {
     @Column(precision = 15, scale = 2)
     private BigDecimal fee;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transfer_type", length = 10)
+    private TransferType transferType;
+
     @Column(length = 250)
     private String description;
 
@@ -103,6 +107,14 @@ public class Transaction {
 
     public void setFee(BigDecimal fee) {
         this.fee = fee;
+    }
+
+    public TransferType getTransferType() {
+        return transferType;
+    }
+
+    public void setTransferType(TransferType transferType) {
+        this.transferType = transferType;
     }
 
     public String getDescription() {
