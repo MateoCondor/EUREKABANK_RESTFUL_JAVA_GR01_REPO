@@ -1,9 +1,9 @@
 package ec.edu.monster.model.client;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import ec.edu.monster.model.dto.AccountBalanceResponse;
 import ec.edu.monster.model.dto.AccountRequest;
 import ec.edu.monster.model.dto.AccountStatusRequest;
 import ec.edu.monster.model.entity.Account;
@@ -22,7 +22,7 @@ public class AccountClient {
         return ApiExecutor.execute(service.getById(id), Map.of(404, "La cuenta no existe"));
     }
 
-    public BigDecimal getBalance(Long id) {
+    public AccountBalanceResponse getBalance(Long id) {
         return ApiExecutor.execute(service.getBalance(id), Map.of(404, "La cuenta no existe"));
     }
 

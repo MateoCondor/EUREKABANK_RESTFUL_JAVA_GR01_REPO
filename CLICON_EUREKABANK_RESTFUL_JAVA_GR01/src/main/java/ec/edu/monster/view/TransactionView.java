@@ -12,6 +12,7 @@ import ec.edu.monster.model.dto.DepositRequest;
 import ec.edu.monster.model.dto.TransferRequest;
 import ec.edu.monster.model.dto.WithdrawRequest;
 import ec.edu.monster.model.entity.Transaction;
+import ec.edu.monster.model.enums.TransferType;
 
 public class TransactionView {
     private final Scanner scanner = new Scanner(System.in);
@@ -50,6 +51,14 @@ public class TransactionView {
         return new WithdrawRequest(accountId, amount, desc);
     }
 
+    public TransferType askTransferType() {
+        System.out.println("Seleccione Tipo de transferencia:");
+        System.out.println("1. Crédito");
+        System.out.println("2. Débito");
+        int typeOpt = readOption(1, 2);
+        return typeOpt == 1 ? TransferType.CREDIT : TransferType.DEBIT;
+    }
+
     public TransferRequest askTransferData() {
         System.out.println("\n== REALIZAR TRANSFERENCIA ==");
         System.out.print("Id de la Cuenta de ORIGEN: ");
@@ -60,7 +69,10 @@ public class TransactionView {
         BigDecimal amount = readBigDecimal();
         System.out.print("Descripción: ");
         String desc = scanner.nextLine();
-        return new TransferRequest(sourceId, targetId, amount, desc);
+        System.out.println("Tipo de transferencia");
+        TransferType transferType = askTransferType();
+
+        return new TransferRequest(sourceId, targetId, amount, desc, transferType);
     }
 
     public Long askAccountId() {

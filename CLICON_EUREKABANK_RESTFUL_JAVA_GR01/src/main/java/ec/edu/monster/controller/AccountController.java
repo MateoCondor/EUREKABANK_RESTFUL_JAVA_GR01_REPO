@@ -48,7 +48,7 @@ public class AccountController {
 
     private void consultarSaldo() {
         Long id = view.askAccountId("verificar el saldo");
-        BigDecimal balance = client.getBalance(id);
+        BigDecimal balance = client.getBalance(id).balance();
         view.showBalance(balance);
     }
 

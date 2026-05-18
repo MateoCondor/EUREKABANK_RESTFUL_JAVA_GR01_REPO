@@ -1,8 +1,8 @@
 package ec.edu.monster.model.service;
 
-import java.math.BigDecimal;
 import java.util.List;
 
+import ec.edu.monster.model.dto.AccountBalanceResponse;
 import ec.edu.monster.model.dto.AccountRequest;
 import ec.edu.monster.model.dto.AccountStatusRequest;
 import ec.edu.monster.model.entity.Account;
@@ -21,7 +21,7 @@ public interface AccountService {
     Call<Account> getById(@Path("id") Long id);
 
     @GET("accounts/{id}/balance")
-    Call<BigDecimal> getBalance(@Path("id") Long id);
+    Call<AccountBalanceResponse> getBalance(@Path("id") Long id);
 
     @GET("accounts/client/{clientId}")
     Call<List<Account>> getByClientId(@Path("clientId") Long clientId);

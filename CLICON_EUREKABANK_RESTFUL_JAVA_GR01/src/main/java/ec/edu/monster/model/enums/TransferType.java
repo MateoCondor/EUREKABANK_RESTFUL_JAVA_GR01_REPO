@@ -2,7 +2,7 @@ package ec.edu.monster.model.enums;
 
 public enum TransferType {
     CREDIT("Crédito"),
-    DEBIT("Debito");
+    DEBIT("Débito");
 
     private String label;
 
