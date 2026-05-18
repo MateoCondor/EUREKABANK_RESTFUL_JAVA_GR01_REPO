@@ -21,12 +21,12 @@ public class AccountController {
             int option = view.showSubMenu();
             try {
                 switch (option) {
-                    case 1 -> listarTodas();
-                    case 2 -> buscarPorId();
-                    case 3 -> consultarSaldo();
-                    case 4 -> listarPorCliente();
-                    case 5 -> abrirCuenta();
-                    case 6 -> cambiarEstado();
+                    case 1 -> getAll();
+                    case 2 -> getById();
+                    case 3 -> getBalance();
+                    case 4 -> getByClient();
+                    case 5 -> create();
+                    case 6 -> updateStatus();
                     case 0 -> inModule = false;
                 }
             } catch (ApiException e) {
@@ -35,44 +35,44 @@ public class AccountController {
         }
     }
 
-    private void listarTodas() {
+    private void getAll() {
         List<Account> list = client.getAll();
         view.showAccounts(list);
     }
 
-    private void buscarPorId() {
+    private void getById() {
         Long id = view.askAccountId("consultar detalles");
         Account a = client.getById(id);
         view.showAccountDetails(a);
     }
 
-    private void consultarSaldo() {
+    private void getBalance() {
         Long id = view.askAccountId("verificar el saldo");
         BigDecimal balance = client.getBalance(id).balance();
         view.showBalance(balance);
     }
 
-    private void listarPorCliente() {
+    private void getByClient() {
         Long clientId = view.askClientId();
         List<Account> list = client.getByClientId(clientId);
         view.showAccounts(list);
     }
 
-    private void abrirCuenta() {
+    private void create() {
         AccountRequest request = view.askAccountData();
-        Account nueva = client.create(request);
-        view.showSuccess("Cuenta bancaria abierta con éxito. Nro: " + nueva.getAccountNumber());
+        Account newAccount = client.create(request);
+        view.showSuccess("Cuenta bancaria abierta con éxito. Nro: " + newAccount.getAccountNumber());
     }
 
-    private void cambiarEstado() {
+    private void updateStatus() {
         Long id = view.askAccountId("modificar el estado");
 
         // Buscamos la cuenta actual para conocer su estado previo antes de preguntar
         Account actual = client.getById(id);
         AccountStatusRequest request = view.askStatusUpdate(actual.getStatus());
 
-        Account modificada = client.updateStatus(id, request);
+        Account updated = client.updateStatus(id, request);
         view.showSuccess(
-                "Estado de la cuenta " + modificada.getAccountNumber() + " actualizado a: " + modificada.getStatus());
+                "Estado de la cuenta " + updated.getAccountNumber() + " actualizado a: " + updated.getStatus());
     }
 }

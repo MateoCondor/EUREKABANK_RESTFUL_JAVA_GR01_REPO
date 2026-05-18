@@ -43,7 +43,7 @@ public class ClientView {
                         return ClientStatus.ACTIVE;
 
                     case 2:
-                        return ClientStatus.ACTIVE;
+                        return ClientStatus.INACTIVE;
 
                     default:
                         System.out.println("Error: Opción fuera de rango. Intente nuevamente.");
