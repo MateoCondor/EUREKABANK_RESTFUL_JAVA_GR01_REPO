@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base URL for the Eurekabank REST API server
 // When running on Payara/GlassFish the context root matches the WAR name
-const API_BASE_URL = 'http://192.168.137.13:8080/WS_EUREKABANK_RESTFUL_JAVA_GR01';
+const API_BASE_URL = 'http://10.40.12.77:8080/WS_EUREKABANK_RESTFUL_JAVA_GR01';
 
 // ──────────────────────────────────────────────
 // Token helpers
