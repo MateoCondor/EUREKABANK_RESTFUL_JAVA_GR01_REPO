@@ -45,7 +45,7 @@ public class ApiClient {
                 .create();
 
         api = new Retrofit.Builder()
-                .baseUrl("http://localhost:8080/WS_EUREKABANK_RESTFUL_JAVA_GR01/")
+                .baseUrl("http://10.40.12.77:8080/WS_EUREKABANK_RESTFUL_JAVA_GR01/")
                 .client(httpClient)
                 .addConverterFactory(GsonConverterFactory.create(gson))
                 .build();
